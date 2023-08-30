@@ -97,9 +97,9 @@ jobs:
         if: steps.plan.outcome == 'failure'
         run: exit 1
 
-      - name: Terraform Apply
+      - name: Terraform destroy
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-        run: terraform apply -auto-approve -input=false
+        run: terraform destroy -auto-approve -input=false
 
       - name: Terraform gh set Secrets
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'
