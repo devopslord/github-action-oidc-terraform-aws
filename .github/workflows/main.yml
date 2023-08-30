@@ -111,5 +111,10 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           # Set the secret using gh cli
-          gh secret set ECS_SERVICE -b $(terraform outputs -raw ecs_service)
+          gh secret set ECS_SERVICE -b $(terraform outputs ecs_service)
+          echo "${{ secrets.AWS_BUCKET_KEY_NAME }}"
+          echo "${{ secrets.ECS_SERVICE }}"
+          echo ${{ secrets.GITHUB_TOKEN }}
+          
+
 
