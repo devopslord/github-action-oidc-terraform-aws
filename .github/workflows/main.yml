@@ -108,20 +108,15 @@ jobs:
 
       - name: Call terraform output
         run: |
-          output=$(terraform output ecs_service)
-          echo " ecs_service is :"
+          output=$(terraform output -raw ecs_service)
           echo $output
-
-          app_url=$(terraform output app_url)
-          echo " app_url is :"
-          echo $app_url
 
       - name: Set GitHub Secret
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           # Set the secret using gh cli
-          gh secret set ECS_SERVICE -b $(terraform Outputs ecs_service)
+          gh secret set ECS_SERVICE -b $(terraform output ecs_service)
           echo "${{ secrets.AWS_BUCKET_KEY_NAME }}"
           echo "${{ secrets.ECS_SERVICE }}"
           echo ${{ secrets.GITHUB_TOKEN }}
