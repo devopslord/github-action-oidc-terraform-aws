@@ -106,12 +106,18 @@ jobs:
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'
         run: terraform apply -auto-approve -input=false
 
+      - name: Call terraform output
+        run: |
+          output=$(terraform output ecs_service)
+          echo "output call :$output"
+          echo $output
+
       - name: Set GitHub Secret
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           # Set the secret using gh cli
-          gh secret set ECS_SERVICE -b $(terraform outputs ecs_service)
+          gh secret set ECS_SERVICE -b $(terraform Outputs ecs_service)
           echo "${{ secrets.AWS_BUCKET_KEY_NAME }}"
           echo "${{ secrets.ECS_SERVICE }}"
           echo ${{ secrets.GITHUB_TOKEN }}
