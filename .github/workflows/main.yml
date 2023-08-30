@@ -66,8 +66,10 @@ jobs:
       - uses: actions/github-script@v6
         if: github.event_name == 'pull_request'
         env:
+          working-directory: terraform
           PLAN: "terraform\n${{ steps.plan.outputs.stdout }}"
         with:
+          working-directory: terraform
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
             const output = `#### Terraform Format and Style 🖌\`${{ steps.fmt.outcome }}\`
@@ -101,6 +103,7 @@ jobs:
             })
 
       - name: Terraform Plan Status
+        working-directory: terraform
         if: steps.plan.outcome == 'failure'
         run: exit 1
 
