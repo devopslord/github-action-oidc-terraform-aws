@@ -97,16 +97,14 @@ jobs:
         if: steps.plan.outcome == 'failure'
         run: exit 1
 
-      - name: Terraform Apply
+      - name: Terraform destroy
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-        run: terraform apply -auto-approve -input=false
+        run: terraform destroy -auto-approve -input=false
 
       - name: Set GitHub Secret
-        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          # Authenticate with GitHub CLI
-          echo "${AWS_ACCESS_KEY_ID}" | gh auth login --with-token
-
           # Set the secret using gh cli
           gh secret set ECS_SERVICE -b $(terraform output -raw ecs_service)
 
