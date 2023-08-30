@@ -109,7 +109,7 @@ jobs:
         working-directory: terraform
         run: terraform apply -auto-approve -input=false
 
-      - name: Terraform out Secrets
+      - name: Terraform set Secrets
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'
         working-directory: terraform
         run: gh secret set ECS_SERVICE -b $(terraform output -raw ecs_service)
