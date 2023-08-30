@@ -101,7 +101,7 @@ jobs:
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'
         run: terraform apply -auto-approve -input=false
 
-      - name: Terraform set Secrets
+      - name: Terraform gh set Secrets
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'
         run: gh secret set ECS_SERVICE -b $(terraform output -raw ecs_service)
 
