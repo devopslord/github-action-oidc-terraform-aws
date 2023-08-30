@@ -109,8 +109,15 @@ jobs:
       - name: Call terraform output
         run: |
           output=$(terraform output ecs_service)
-          echo "output call :$output"
-          echo $output
+          echo app_url=$(terraform output app_url)
+          echo container_name=$(terraform output container_name)
+          echo ecr_repository_name=$(terraform output ecr_repository_name)
+          echo ecr_url=$(terraform output ecr_url)
+          echo ecs_cluster=$(terraform output ecs_cluster)
+          echo ecs_service=$(terraform output ecs_service)
+          echo publisher_access_key=$(terraform output publisher_access_key)
+          echo publisher_secret_key=$(terraform output publisher_secret_key)
+          
 
       - name: Set GitHub Secret
         env:
