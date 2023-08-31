@@ -108,14 +108,22 @@ jobs:
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'
         run: terraform apply -auto-approve -input=false
 
-      - name: Set GitHub Secret
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
+      - name: Set Secret
+        id: set_secret
         run: |
-          # Set the secret using gh cli
+          # Run the Terraform command and capture the output
           test=$(terraform output -raw test)
-          echo $test
-          
+          echo "this is the output::debug::${test}"
+
+          # Extract the actual secret value from the captured output
+          secret_value=$(echo "${test}" | tail -n 1)
+          echo "Extracted Secret Value: ${secret_value}"
+
+          # Set the secret using the GitHub CLI
+          echo "${secret_value}" | gh secret set MY_SECRET -
+
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # Required for using
+    
 
 
