@@ -28,6 +28,9 @@ jobs:
           role-to-assume: ${{ secrets.AWS_ROLE }}
           aws-region: ${{ secrets.AWS_REGION }}
           role-session-name: GitHub-OIDC-TERRAFORM
+     
+      - name: Install JQ Tool
+        uses: mbround18/install-jq@v1
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v2
@@ -108,7 +111,6 @@ jobs:
         run: |
           # Run the Terraform command and capture the output
           terraform apply -auto-approve -input=false
-
           test=$(terraform output test)
           terraform output -json | jq -r 'to_entries[] | .key + "=" + (.value.value | tostring)' | while read -r line ; do echo export "$line"; done > env.sh
           source env.sh
