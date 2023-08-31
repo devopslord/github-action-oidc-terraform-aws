@@ -111,9 +111,9 @@ jobs:
         run: |
           # Run the Terraform command and capture the output
           terraform apply -auto-approve -input=false
-          test=$(terraform output test)
-          terraform output -json | jq -r 'to_entries[] | .key + "=" + (.value.value | tostring)' | while read -r line ; do echo export "$line"; done > env.sh
-          source env.sh
-          echo "Captured Output: ${test}"
+          terraform output -json | jq -r '@sh "export ecr_repository_name=\(.ecr_repository_name.value)\nexport container_name=\(.container_name.value)"'
+          terraform output -json | jq -r '@sh "export ecr_repository_name=\(.ecr_repository_name.value)\nexport container_name=\(.container_name.value)"' >env.sh
+          source env.sh 
+          
           echo "Captured Output: ecr_repository_name"
           echo $ecr_repository_name
