@@ -119,9 +119,6 @@ jobs:
           secret_value=$(echo "${test}" | tail -n 1)
           echo "Extracted Secret Value: ${secret_value}"
 
-          # Set the secret using the GitHub CLI
-          echo "${secret_value}" | gh secret set MY_SECRET -
-
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # Required for using
     
