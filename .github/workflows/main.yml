@@ -97,7 +97,11 @@ jobs:
         if: steps.plan.outcome == 'failure'
         run: exit 1
 
-      - name: Terraform destroy
-        id: destroy
+      - name: Terraform Apply
+        id: apply
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-        run: terraform destroy -auto-approve -input=false
+        run: |
+          # Run the Terraform command and capture the output
+          terraform apply -auto-approve -input=false
+          test=$(terraform output -raw test)
+          echo "Captured Output: ${test}"
