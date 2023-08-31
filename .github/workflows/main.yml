@@ -112,9 +112,9 @@ jobs:
         id: set_secret
         run: |
           # Run the Terraform command and capture the output
-          test=$(terraform output -raw test)
-          echo "this is the output::debug::${test}"
-
+          test=$(terraform output -raw test | tr -d '\n')
+          echo "Captured Output: ${test}"
+          
           # Extract the actual secret value from the captured output
           secret_value=$(echo "${test}" | tail -n 1)
           echo "Extracted Secret Value: ${secret_value}"
