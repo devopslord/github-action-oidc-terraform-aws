@@ -97,11 +97,21 @@ jobs:
         if: steps.plan.outcome == 'failure'
         run: exit 1
 
+      - name: Terraform destroy
+        id: destroy
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        run: terraform destroy -auto-approve -input=false
+
       - name: Terraform Apply
         id: apply
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'
         run: |
           # Run the Terraform command and capture the output
           terraform apply -auto-approve -input=false
-          test=$(terraform output -raw test)
+
+          test=$(terraform output test)
+          terraform output -json | jq -r 'to_entries[] | .key + "=" + (.value.value | tostring)' | while read -r line ; do echo export "$line"; done > env.sh
+          source env.sh
           echo "Captured Output: ${test}"
+          echo "Captured Output: ecr_repository_name"
+          echo $ecr_repository_name
