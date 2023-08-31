@@ -98,26 +98,26 @@ jobs:
         run: exit 1
 
       - name: Terraform destroy
+        id: destroy
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'
         run: terraform destroy -auto-approve -input=false
 
 
       - name: Terraform Apply
+        id: apply
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'
         run: terraform apply -auto-approve -input=false
 
       - name: Set GitHub Secret
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TERRAFORM_OUTPUT: ${{ steps.execute_terraform.outputs.stdout }}
+
         run: |
           # Set the secret using gh cli
-          output=$(terraform output test)
-          echo $output
-          gh secret set ECS_SERVICE -b $(terraform output ecs_service)
-          echo "${{ secrets.AWS_BUCKET_KEY_NAME }}"
-          echo "${{ secrets.ECS_SERVICE }}"
-          echo ${{ secrets.GITHUB_TOKEN }}
+          
+          terraform output -json | jq -r 'to_entries[] | .key + "=" + (.value.value | tostring)' | while read -r line ; do echo export "$line"; done > env.sh
+          source env.sh
+          echo $test
           
 
 
