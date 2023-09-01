@@ -3,6 +3,8 @@ on:
   push:
     branches:
       - main
+    tags:
+      - "*"
   pull_request:
 permissions:
       id-token: write # This is required for aws oidc connection
@@ -12,7 +14,7 @@ env:
   TF_LOG: INFO
   AWS_REGION: ${{ secrets.AWS_REGION }}
 jobs:
-  deploy:
+  infra:
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -139,7 +141,7 @@ jobs:
         shell: bash
         working-directory: src
     needs:
-      - deploy
+      - infra
     steps:
       - name: "Checkout Code"
         uses: "actions/checkout@v2"
