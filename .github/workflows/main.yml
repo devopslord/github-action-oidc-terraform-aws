@@ -138,6 +138,8 @@ jobs:
       run:
         shell: bash
         working-directory: src
+    needs:
+      - deploy
     steps:
       - name: "Checkout Code"
         uses: "actions/checkout@v2"
