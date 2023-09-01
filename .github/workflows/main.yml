@@ -117,6 +117,17 @@ jobs:
           container_name=$(terraform output container_name)
           ecr_repository_name=$(terraform output ecr_repository_name)
           ecr_url=$(terraform output ecr_url)
+          ecs_cluster=$(terraform output ecs_cluster)
+          ecs_service=$(terraform output ecs_service)
+          publisher_access_key=$(terraform output publisher_access_key)
+          publisher_secret_key=$(terraform output publisher_secret_key)
          
+          gh secret set app_url -b $app_url -R devopslord/github-action-oidc-terraform-aws
+          gh secret set container_name -b $container_name -R devopslord/github-action-oidc-terraform-aws
+          gh secret set ecr_repository_name -b $ecr_repository_name -R devopslord/github-action-oidc-terraform-aws
           gh secret set ecr_url -b $ecr_url -R devopslord/github-action-oidc-terraform-aws
-          echo "This is the secret : ${{ secrets.ecr_url }}"
+          gh secret set ecs_cluster -b $ecs_cluster -R devopslord/github-action-oidc-terraform-aws
+          gh secret set ecs_service -b $ecs_service -R devopslord/github-action-oidc-terraform-aws
+          gh secret set publisher_access_key -b $publisher_access_key -R devopslord/github-action-oidc-terraform-aws
+          gh secret set publisher_secret_key -b $publisher_secret_key -R devopslord/github-action-oidc-terraform-aws
+          
