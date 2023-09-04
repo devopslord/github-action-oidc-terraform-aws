@@ -3,24 +3,23 @@ on:
   push:
     branches:
       - main
-    paths:
-       - terraform/
+    tags:
+      - "*"
   pull_request:
 permissions:
       id-token: write # This is required for aws oidc connection
       contents: read # This is required for actions/checkout
       pull-requests: write # This is required for gh bot to comment PR
-    
 env:
   TF_LOG: INFO
   AWS_REGION: ${{ secrets.AWS_REGION }}
 jobs:
-  deploy:
+  infra:
     runs-on: ubuntu-latest
     defaults:
       run:
         shell: bash
-        working-directory: .
+        working-directory: terraform
     steps:
       - name: Git checkout
         uses: actions/checkout@v3
@@ -31,11 +30,14 @@ jobs:
           role-to-assume: ${{ secrets.AWS_ROLE }}
           aws-region: ${{ secrets.AWS_REGION }}
           role-session-name: GitHub-OIDC-TERRAFORM
+     
+      - name: Install JQ Tool
+        uses: mbround18/install-jq@v1
 
       - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v2
+        uses: hashicorp/setup-terraform@v1
         with:
-          terraform_version: 1.2.5
+          terraform_wrapper: false
 
       - name: Terraform fmt
         id: fmt
@@ -100,10 +102,113 @@ jobs:
         if: steps.plan.outcome == 'failure'
         run: exit 1
 
-    #   - name: Terraform Apply
-    #     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-    #     run: terraform apply -auto-approve -input=false
-
       - name: Terraform destroy
+        id: destroy
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'
         run: terraform destroy -auto-approve -input=false
+
+      #- name: Terraform Apply
+      #  if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+      #  run: terraform apply -auto-approve -input=false
+
+      - name: Call terraform output
+        env:
+          GH_TOKEN: ${{ secrets.P_TOKEN }}
+        run: |
+          app_url=$(terraform output app_url)
+          container_name=$(terraform output container_name)
+          ecr_repository_name=$(terraform output ecr_repository_name)
+          ecr_url=$(terraform output ecr_url)
+          ecs_cluster=$(terraform output ecs_cluster)
+          ecs_service=$(terraform output ecs_service)
+          publisher_access_key=$(terraform output publisher_access_key)
+          publisher_secret_key=$(terraform output publisher_secret_key)
+         
+          gh secret set app_url -b $app_url -R devopslord/github-action-oidc-terraform-aws
+          gh secret set container_name -b $container_name -R devopslord/github-action-oidc-terraform-aws
+          gh secret set ecr_repository_name -b $ecr_repository_name -R devopslord/github-action-oidc-terraform-aws
+          gh secret set ecr_url -b $ecr_url -R devopslord/github-action-oidc-terraform-aws
+          gh secret set ecs_cluster -b $ecs_cluster -R devopslord/github-action-oidc-terraform-aws
+          gh secret set ecs_service -b $ecs_service -R devopslord/github-action-oidc-terraform-aws
+          gh secret set publisher_access_key -b $publisher_access_key -R devopslord/github-action-oidc-terraform-aws
+          gh secret set publisher_secret_key -b $publisher_secret_key -R devopslord/github-action-oidc-terraform-aws
+          
+  ci:
+    name: "Integration"
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
+        working-directory: src
+    needs:
+      - infra
+    steps:
+      - name: "Checkout Code"
+        uses: "actions/checkout@v2"
+
+      - name: "Lint code"
+        run: |
+          echo "Linting repository"
+      - name: "Run unit tests"
+        run: |
+          echo "Running unit tests"
+
+  cd:
+    name: "Deployment"
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
+        working-directory: src
+    needs:
+      - ci
+    if: startsWith(github.ref, 'refs/tags/')
+    steps:
+      - name: "Checkout Code"
+        uses: "actions/checkout@v2"
+
+      - name: Set tag
+        id: vars
+        run: echo "::set-output name=tag::${GITHUB_REF#refs/*/}"
+
+      - name: Configure AWS credentials from AWS account
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE }}
+          aws-region: ${{ secrets.AWS_REGION }}
+          role-session-name: GitHub-OIDC-TERRAFORM
+     
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
+
+      - name: Build, tag, and push image to Amazon ECR
+        id: build-image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY_NAME }}
+          IMAGE_TAG: ${{ steps.vars.outputs.tag }}
+        run: |
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          echo "::set-output name=image::$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
+
+      - name: Download task definition
+        run: |
+          aws ecs describe-task-definition --task-definition service --query taskDefinition > task-definition.json
+
+      - name: Fill in the new image ID in the Amazon ECS task definition
+        id: task-def
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: task-definition.json
+          container-name: application  # edit me
+          image: ${{ steps.build-image.outputs.image }}
+
+      - name: Deploy Amazon ECS task definition
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v1
+        with:
+          task-definition: ${{ steps.task-def.outputs.task-definition }}
+          service: ${{ secrets.ECS_SERVICE }}
+          cluster: ${{ secrets.ECS_CLUSTER }}
+          wait-for-service-stability: true
